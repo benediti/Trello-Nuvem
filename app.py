@@ -3,12 +3,32 @@ import pandas as pd
 from datetime import datetime
 from io import BytesIO
 
+def verificar_colunas_obrigatorias(df):
+    colunas_necessarias = {
+        'NOME', 'MATRÍCULA', 'LOCALIZAÇÃO', 'DIA', 'BATIDAS', 
+        'ENTRADA 1', 'SAÍDA 1', 'ENTRADA 2', 'SAÍDA 2', 
+        'ATRASO', 'FALTA', 'BANCO DE HORAS', 
+        'HORA EXTRA 50% (N.A.)', 'HORA EXTRA 100% (N.A.)', 
+        'DSR DESCONTADO', 'ADICIONAL NOTURNO', 'EXPEDIENTE'
+    }
+    
+    colunas_atuais = set(df.columns)
+    colunas_faltantes = colunas_necessarias - colunas_atuais
+    
+    if colunas_faltantes:
+        raise ValueError(f"Colunas obrigatórias faltando: {', '.join(colunas_faltantes)}")
+    
+    return True
+
 def processar_planilha(uploaded_file):
     # Lê o arquivo Excel
     df = pd.read_excel(uploaded_file)
     
     # Padroniza nomes das colunas
     df.columns = [col.strip().upper() for col in df.columns]
+    
+    # Verifica se todas as colunas necessárias existem
+    verificar_colunas_obrigatorias(df)
     
     # Adiciona coluna de verificação se não existir
     if 'ID VERIFICACAO' not in df.columns:
@@ -21,27 +41,32 @@ def processar_planilha(uploaded_file):
 
     for index, row in df[df['ID VERIFICACAO'] != 'PROCESSADO'].iterrows():
         descricao = (
-            f"Matrícula: {row.get('MATRÍCULA', '')}\n"
-            f"Localização: {row.get('LOCALIZAÇÃO', '')}\n"
-            f"Dia: {row.get('DIA', '')}\n"
+            f"Matrícula: {row['MATRÍCULA']}\n"
+            f"Localização: {row['LOCALIZAÇÃO']}\n"
+            f"Dia: {row['DIA']}\n"
         )
 
-        # Verifica batidas
-        batidas = [row.get(col, '').strip() if pd.notna(row.get(col, '')) else '' 
-                  for col in ['BATIDAS', 'ENTRADA 1', 'SAÍDA 1', 'ENTRADA 2', 'SAÍDA 2']]
+        # Verifica batidas - agora usando as colunas exatas
+        batidas = [
+            str(row['BATIDAS']).strip() if pd.notna(row['BATIDAS']) else '',
+            str(row['ENTRADA 1']).strip() if pd.notna(row['ENTRADA 1']) else '',
+            str(row['SAÍDA 1']).strip() if pd.notna(row['SAÍDA 1']) else '',
+            str(row['ENTRADA 2']).strip() if pd.notna(row['ENTRADA 2']) else '',
+            str(row['SAÍDA 2']).strip() if pd.notna(row['SAÍDA 2']) else ''
+        ]
         
         if all(not batida or batida == '00:00' for batida in batidas):
             registros.append({
                 'list': 'SEM BATIDA',
-                'Card Name': row.get('NOME', 'Sem Nome'),
+                'Card Name': row['NOME'],
                 'desc': descricao,
                 'checklist': 'Sem registros de batida',
                 'Data': data_atual
             })
             colunas_exportadas.add('SEM BATIDA')
 
-        # Verifica outros campos
-        campos = {
+        # Mapeamento exato dos campos para verificação
+        campos_verificacao = {
             'ATRASO': 'ATRASO',
             'FALTA': 'FALTA',
             'BANCO DE HORAS': 'BANCO DE HORAS',
@@ -52,19 +77,18 @@ def processar_planilha(uploaded_file):
             'EXPEDIENTE': 'EXPEDIENTE'
         }
 
-        for campo, lista in campos.items():
-            valor = str(row.get(campo, '')).strip() if pd.notna(row.get(campo, '')) else ''
+        for coluna, lista in campos_verificacao.items():
+            valor = str(row[coluna]).strip() if pd.notna(row[coluna]) else ''
             if valor and valor != '00:00':
                 registros.append({
                     'list': lista,
-                    'Card Name': row.get('NOME', 'Sem Nome'),
+                    'Card Name': row['NOME'],
                     'desc': descricao,
                     'checklist': valor,
                     'Data': data_atual
                 })
                 colunas_exportadas.add(lista)
 
-        # Atualiza o status de processamento
         df.loc[index, 'ID VERIFICACAO'] = 'PROCESSADO'
 
     return pd.DataFrame(registros), df, sorted(list(colunas_exportadas))
@@ -89,6 +113,7 @@ def main():
                     output = BytesIO()
                     with pd.ExcelWriter(output, engine='openpyxl') as writer:
                         df.to_excel(writer, index=False)
+                    output.seek(0)
                     return output.getvalue()
 
                 # Cria os botões de download
@@ -106,6 +131,8 @@ def main():
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
 
+            except ValueError as e:
+                st.error(str(e))
             except Exception as e:
                 st.error(f"Erro ao processar arquivo: {str(e)}")
 
