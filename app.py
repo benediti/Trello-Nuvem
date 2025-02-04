@@ -30,6 +30,9 @@ def processar_planilha(uploaded_file):
     # Verifica se todas as colunas necessárias existem
     verificar_colunas_obrigatorias(df)
     
+    # Remove linhas onde NOME é NaN (linhas de total)
+    df = df.dropna(subset=['NOME'])
+    
     # Adiciona coluna de verificação se não existir
     if 'ID VERIFICACAO' not in df.columns:
         df['ID VERIFICACAO'] = ''
@@ -40,13 +43,17 @@ def processar_planilha(uploaded_file):
     colunas_exportadas = set()
 
     for index, row in df[df['ID VERIFICACAO'] != 'PROCESSADO'].iterrows():
+        # Ignora linhas de total ou com nome vazio
+        if pd.isna(row['NOME']) or str(row['NOME']).strip() == '':
+            continue
+            
         descricao = (
             f"Matrícula: {row['MATRÍCULA']}\n"
             f"Localização: {row['LOCALIZAÇÃO']}\n"
-            f"Dia: {row['DIA']}\n"
+            f"Dia: {row['DIA']}"  # Removido \n extra
         )
 
-        # Verifica batidas - agora usando as colunas exatas
+        # Verifica batidas
         batidas = [
             str(row['BATIDAS']).strip() if pd.notna(row['BATIDAS']) else '',
             str(row['ENTRADA 1']).strip() if pd.notna(row['ENTRADA 1']) else '',
@@ -65,7 +72,6 @@ def processar_planilha(uploaded_file):
             })
             colunas_exportadas.add('SEM BATIDA')
 
-        # Mapeamento exato dos campos para verificação
         campos_verificacao = {
             'ATRASO': 'ATRASO',
             'FALTA': 'FALTA',
@@ -102,13 +108,11 @@ def main():
     if uploaded_file is not None:
         if st.button("Processar Arquivo"):
             try:
-                # Processa a planilha
                 trello_data, faltas_atualizadas, colunas_exportadas = processar_planilha(uploaded_file)
                 
                 st.success("Arquivo processado com sucesso!")
                 st.write("Colunas exportadas:", ", ".join(colunas_exportadas))
 
-                # Prepara os arquivos Excel para download
                 def to_excel(df):
                     output = BytesIO()
                     with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -116,7 +120,6 @@ def main():
                     output.seek(0)
                     return output.getvalue()
 
-                # Cria os botões de download
                 st.download_button(
                     label="Baixar arquivo Trello formatado",
                     data=to_excel(trello_data),
