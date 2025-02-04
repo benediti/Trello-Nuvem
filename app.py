@@ -19,7 +19,7 @@ def processar_planilha(uploaded_file):
     data_atual = datetime.now().strftime('%Y-%m-%d')
     colunas_exportadas = set()
 
-    for _, row in df[df['ID VERIFICACAO'] != 'PROCESSADO'].iterrows():
+    for index, row in df[df['ID VERIFICACAO'] != 'PROCESSADO'].iterrows():
         descricao = (
             f"Matrícula: {row.get('MATRÍCULA', '')}\n"
             f"Localização: {row.get('LOCALIZAÇÃO', '')}\n"
@@ -64,7 +64,8 @@ def processar_planilha(uploaded_file):
                 })
                 colunas_exportadas.add(lista)
 
-        df.loc[df.index == _.name, 'ID VERIFICACAO'] = 'PROCESSADO'
+        # Atualiza o status de processamento
+        df.loc[index, 'ID VERIFICACAO'] = 'PROCESSADO'
 
     return pd.DataFrame(registros), df, sorted(list(colunas_exportadas))
 
