@@ -84,12 +84,12 @@ def processar_planilha(uploaded_file):
             'EXPEDIENTE': 'EXPEDIENTE'
         }
 
-        # Combinar as colunas FERIADOS e TEMPO DE FERIADO em uma só
+        # Combinar as colunas FERIADOS (coluna Z) e TEMPO DE FERIADO (coluna AA) em uma só
         feriado_valor = ''
-        if pd.notna(row['FERIADOS']):
-            feriado_valor += f"{str(row['FERIADOS']).strip()} "  # Valor da coluna FERIADOS
-        if pd.notna(row['TEMPO DE FERIADO']):
-            feriado_valor += f"{str(row['TEMPO DE FERIADO']).strip()}"  # Valor da coluna TEMPO DE FERIADO
+        if 'FERIADOS' in row and pd.notna(row['FERIADOS']):
+            feriado_valor += f"{str(row['FERIADOS']).strip()} "  # Valor da coluna FERIADOS (coluna Z)
+        if 'TEMPO DE FERIADO' in row and pd.notna(row['TEMPO DE FERIADO']):
+            feriado_valor += f"{str(row['TEMPO DE FERIADO']).strip()}"  # Valor da coluna TEMPO DE FERIADO (coluna AA)
 
         if feriado_valor.strip():  # Adicionar apenas se houver valor
             registros.append({
