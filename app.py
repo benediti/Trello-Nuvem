@@ -81,14 +81,30 @@ def processar_planilha(uploaded_file):
             'HORA EXTRA 100% (N.A.)': 'HORA EXTRA 100%',
             'DSR DESCONTADO': 'DSR DESCONTADO',
             'ADICIONAL NOTURNO': 'ADICIONAL NOTURNO',
-            'EXPEDIENTE': 'EXPEDIENTE',
-            'FERIADOS': 'FERIADOS',  # Novo campo adicionado
-            'TEMPO DE FERIADO': 'TEMPO DE FERIADO'  # Novo campo adicionado
+            'EXPEDIENTE': 'EXPEDIENTE'
         }
 
+        # Combinar as colunas FERIADOS e TEMPO DE FERIADO em uma só
+        feriado_valor = ''
+        if pd.notna(row['FERIADOS']):
+            feriado_valor += f"FERIADOS: {str(row['FERIADOS']).strip()} "
+        if pd.notna(row['TEMPO DE FERIADO']):
+            feriado_valor += f"TEMPO DE FERIADO: {str(row['TEMPO DE FERIADO']).strip()}"
+
+        if feriado_valor.strip():
+            registros.append({
+                'list': 'FERIADO',
+                'Card Name': row['NOME'],
+                'desc': descricao,
+                'checklist': feriado_valor.strip(),
+                'Data': data_atual
+            })
+            colunas_exportadas.add('FERIADO')
+
+        # Processar as demais colunas
         for coluna, lista in campos_verificacao.items():
             valor = str(row[coluna]).strip() if pd.notna(row[coluna]) else ''
-            if valor and valor != '00:00':
+            if valor and valor != '00:00':  # Certifique-se de que valores válidos são processados
                 registros.append({
                     'list': lista,
                     'Card Name': row['NOME'],
