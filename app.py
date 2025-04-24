@@ -9,7 +9,8 @@ def verificar_colunas_obrigatorias(df):
         'ENTRADA 1', 'SAÍDA 1', 'ENTRADA 2', 'SAÍDA 2', 
         'ATRASO', 'FALTA', 'BANCO DE HORAS', 
         'HORA EXTRA 50% (N.A.)', 'HORA EXTRA 100% (N.A.)', 
-        'DSR DESCONTADO', 'ADICIONAL NOTURNO', 'EXPEDIENTE'
+        'DSR DESCONTADO', 'ADICIONAL NOTURNO', 'EXPEDIENTE',
+        'FERIADOS', 'TEMPO DE FERIADO'  # Novas colunas adicionadas
     }
     
     colunas_atuais = set(df.columns)
@@ -80,7 +81,9 @@ def processar_planilha(uploaded_file):
             'HORA EXTRA 100% (N.A.)': 'HORA EXTRA 100%',
             'DSR DESCONTADO': 'DSR DESCONTADO',
             'ADICIONAL NOTURNO': 'ADICIONAL NOTURNO',
-            'EXPEDIENTE': 'EXPEDIENTE'
+            'EXPEDIENTE': 'EXPEDIENTE',
+            'FERIADOS': 'FERIADOS',  # Novo campo adicionado
+            'TEMPO DE FERIADO': 'TEMPO DE FERIADO'  # Novo campo adicionado
         }
 
         for coluna, lista in campos_verificacao.items():
